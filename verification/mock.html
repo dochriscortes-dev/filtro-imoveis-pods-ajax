@@ -1,40 +1,32 @@
-<?php
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Advanced Pods AJAX Filter</title>
+    <!-- CSS Dependencies -->
+    <link rel="stylesheet" href="assets/css/select2.min.css">
+    <link rel="stylesheet" href="assets/css/nouislider.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../advanced-pods-ajax-filter/assets/css/style.css">
 
-function apaf_shortcode_render( $atts ) {
-	// Attributes if needed in future
-	$atts = shortcode_atts( array(), $atts, 'pods_advanced_filter' );
+    <style>
+        body { margin: 0; background: #f4f4f4; padding-top: 50px; }
+        .wrapper { max-width: 1200px; margin: 0 auto; }
+        .description { text-align: center; margin-bottom: 50px; }
+    </style>
+</head>
+<body>
 
-	// Fetch Taxonomies
-	$cidades = get_terms( array( 'taxonomy' => 'cidade', 'hide_empty' => true ) );
-	$tipos_imovel = get_terms( array( 'taxonomy' => 'tipo_imovel', 'hide_empty' => true ) );
-	$zonas = get_terms( array( 'taxonomy' => 'zona', 'hide_empty' => false ) ); // Maybe false to show options even if empty? Safe to use true usually.
-	$finalidades = get_terms( array( 'taxonomy' => 'finalidade', 'hide_empty' => false ) );
+    <div class="wrapper">
+        <div class="description">
+            <h1>Plugin Preview</h1>
+            <p>Below is the mocked shortcode output.</p>
+        </div>
+    </div>
 
-	// Determine Buy/Rent slugs for the toggle
-	$buy_slug = '';
-	$rent_slug = '';
-
-	if ( ! is_wp_error( $finalidades ) ) {
-		foreach ( $finalidades as $term ) {
-			if ( in_array( $term->slug, array( 'comprar', 'venda', 'buy', 'sales' ) ) ) {
-				$buy_slug = $term->slug;
-			} elseif ( in_array( $term->slug, array( 'alugar', 'aluguel', 'rent', 'lease' ) ) ) {
-				$rent_slug = $term->slug;
-			}
-		}
-		// Fallback if specific slugs not found, just take first two
-		if ( ! $buy_slug && ! $rent_slug && count( $finalidades ) >= 2 ) {
-			$buy_slug = $finalidades[0]->slug;
-			$rent_slug = $finalidades[1]->slug;
-		}
-	}
-
-	ob_start();
-	?>
-	<div id="apaf-container">
+    <!-- MOCKED SHORTCODE OUTPUT -->
+    <div id="apaf-container">
 
 		<!-- Sticky Search Bar -->
 		<div id="apaf-search-bar" class="apaf-bar">
@@ -44,10 +36,10 @@ function apaf_shortcode_render( $atts ) {
 					<!-- 1. Operation Toggle -->
 					<div class="apaf-field apaf-toggle-wrapper">
 						<div class="apaf-toggle">
-							<input type="radio" name="finalidade" id="apaf-op-buy" value="<?php echo esc_attr( $buy_slug ); ?>" checked>
+							<input type="radio" name="finalidade" id="apaf-op-buy" value="comprar" checked>
 							<label for="apaf-op-buy">Comprar</label>
 
-							<input type="radio" name="finalidade" id="apaf-op-rent" value="<?php echo esc_attr( $rent_slug ); ?>">
+							<input type="radio" name="finalidade" id="apaf-op-rent" value="alugar">
 							<label for="apaf-op-rent">Alugar</label>
 
 							<div class="apaf-toggle-bg"></div>
@@ -58,11 +50,8 @@ function apaf_shortcode_render( $atts ) {
 					<div class="apaf-field apaf-field-city">
 						<select name="cidade" id="apaf-cidade" class="apaf-select2" data-placeholder="Cidade">
 							<option value="">Cidade</option>
-							<?php if ( ! empty( $cidades ) && ! is_wp_error( $cidades ) ) : ?>
-								<?php foreach ( $cidades as $cidade ) : ?>
-									<option value="<?php echo esc_attr( $cidade->slug ); ?>"><?php echo esc_html( $cidade->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
+                            <option value="sao-paulo">São Paulo</option>
+                            <option value="rio-de-janeiro">Rio de Janeiro</option>
 						</select>
 					</div>
 
@@ -76,18 +65,16 @@ function apaf_shortcode_render( $atts ) {
 					<!-- 4. Property Type -->
 					<div class="apaf-field apaf-field-type">
 						<select name="tipo_imovel[]" id="apaf-tipo" class="apaf-select2" multiple="multiple" data-placeholder="Tipo de Imóvel">
-							<?php if ( ! empty( $tipos_imovel ) && ! is_wp_error( $tipos_imovel ) ) : ?>
-								<?php foreach ( $tipos_imovel as $tipo ) : ?>
-									<option value="<?php echo esc_attr( $tipo->slug ); ?>"><?php echo esc_html( $tipo->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
+                            <option value="apartamento">Apartamento</option>
+                            <option value="casa">Casa</option>
+                            <option value="cobertura">Cobertura</option>
 						</select>
 					</div>
 
 					<!-- 5. Advanced Filters Button -->
 					<div class="apaf-field apaf-field-advanced">
 						<button type="button" id="apaf-btn-advanced" class="apaf-text-btn">
-							Filtros Avançados <span class="dashicons dashicons-filter"></span>
+							Filtros Avançados <span class="fa fa-filter"></span>
 						</button>
 					</div>
 
@@ -114,11 +101,8 @@ function apaf_shortcode_render( $atts ) {
 						<label class="apaf-label">Localização / Zona</label>
 						<select name="zona" id="apaf-zona" class="apaf-simple-select">
 							<option value="">Todas</option>
-							<?php if ( ! empty( $zonas ) && ! is_wp_error( $zonas ) ) : ?>
-								<?php foreach ( $zonas as $zona ) : ?>
-									<option value="<?php echo esc_attr( $zona->slug ); ?>"><?php echo esc_html( $zona->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
+                            <option value="urbana">Urbana</option>
+                            <option value="rural">Rural</option>
 						</select>
 					</div>
 
@@ -195,13 +179,65 @@ function apaf_shortcode_render( $atts ) {
 		<!-- Results Container -->
 		<div id="apaf-results-wrapper">
 			<div id="apaf-results-loader" style="display:none;">
-				<div class="spinner"></div>
+				<div class="spinner">Loading...</div>
 			</div>
 			<div id="apaf-results-container"></div>
 		</div>
 
 	</div>
-	<?php
-	return ob_get_clean();
-}
-add_shortcode( 'pods_advanced_filter', 'apaf_shortcode_render' );
+    <!-- END MOCKED SHORTCODE OUTPUT -->
+
+    <!-- JS Dependencies -->
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/select2.min.js"></script>
+    <script src="assets/js/nouislider.min.js"></script>
+
+    <!-- Mock Obj -->
+    <script>
+        var apaf_obj = {
+            ajax_url: '/mock-ajax', // This won't work in real browser but good for static testing
+            nonce: '123456'
+        };
+
+        // Mock AJAX for checking behavior locally without server
+        $.ajax = function(params) {
+            console.log("Mock AJAX call:", params);
+
+            var action = null;
+            if (Array.isArray(params.data)) {
+                // Find action in array
+                var actionItem = params.data.find(item => item.name === 'action');
+                if (actionItem) action = actionItem.value;
+            } else if (typeof params.data === 'object') {
+                action = params.data.action;
+            }
+
+            if (action === 'apaf_get_bairros') {
+                setTimeout(function() {
+                     params.success({
+                         success: true,
+                         data: [
+                             {id: 'centro', text: 'Centro'},
+                             {id: 'jardins', text: 'Jardins'},
+                             {id: 'pinheiros', text: 'Pinheiros'}
+                         ]
+                     });
+                }, 100); // Reduced timeout
+            } else if (action === 'apaf_filter_imoveis') {
+                setTimeout(function() {
+                    params.success({
+                        success: true,
+                        data: {
+                            html: '<div class="apaf-results-grid"><div class="apaf-card"><div class="apaf-card-image" style="background:#ddd;"></div><div class="apaf-card-content"><h3 class="apaf-card-title">Imóvel Teste</h3><div class="apaf-card-price">R$ 500.000,00</div></div></div></div>'
+                        }
+                    });
+                }, 100); // Reduced timeout
+            } else {
+                console.warn("Unknown mock action:", action);
+            }
+        };
+    </script>
+
+    <script src="../advanced-pods-ajax-filter/assets/js/script.js"></script>
+</body>
+</html>

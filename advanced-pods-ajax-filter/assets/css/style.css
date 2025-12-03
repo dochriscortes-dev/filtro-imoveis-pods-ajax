@@ -1,168 +1,442 @@
-/* Container */
-.apaf-wrapper {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 20px;
+/* Global Styles & Reset */
+#apaf-container {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #333;
+    position: relative;
+    width: 100%;
 }
 
-.apaf-filter-form {
-	background: #f9f9f9;
-	padding: 20px;
-	border-radius: 8px;
-	box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-	margin-bottom: 30px;
+#apaf-container * {
+    box-sizing: border-box;
 }
 
-.apaf-filter-form h3 {
-	margin-top: 0;
-	margin-bottom: 20px;
-	font-size: 1.5em;
-	border-bottom: 1px solid #ddd;
-	padding-bottom: 10px;
+/* --- Sticky Bar --- */
+#apaf-search-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 10px 0;
+    width: 100%;
+    transition: all 0.3s ease;
 }
 
+.apaf-bar-inner {
+    display: flex;
+    flex-wrap: nowrap; /* Single row on desktop */
+    align-items: center;
+    justify-content: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+    gap: 15px;
+}
+
+/* Operation Toggle */
+.apaf-toggle-wrapper {
+    flex: 0 0 auto;
+}
+
+.apaf-toggle {
+    display: flex;
+    background: #f0f0f0;
+    border-radius: 30px;
+    position: relative;
+    padding: 2px;
+    width: 180px;
+    height: 40px;
+    user-select: none;
+}
+
+.apaf-toggle input {
+    display: none;
+}
+
+.apaf-toggle label {
+    flex: 1;
+    text-align: center;
+    line-height: 36px;
+    z-index: 2;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    color: #888;
+    transition: color 0.3s;
+}
+
+.apaf-toggle input:checked + label {
+    color: #fff;
+}
+
+.apaf-toggle-bg {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 50%;
+    height: 36px;
+    background: #000;
+    border-radius: 28px;
+    transition: transform 0.3s ease;
+    z-index: 1;
+}
+
+/* Logic for toggle bg movement handled by CSS checked adjacent selector is tricky with label order.
+   Better handled by JS or fixed 'checked' classes.
+   But pure CSS trick:
+   If first is checked, left: 2px.
+   If second is checked, transform: translateX(100% - 4px?).
+*/
+#apaf-op-buy:checked ~ .apaf-toggle-bg {
+    transform: translateX(0);
+}
+#apaf-op-rent:checked ~ .apaf-toggle-bg {
+    transform: translateX(86px); /* 180/2 = 90. minus padding? Adjusted manually or flex. */
+    width: calc(50% - 2px);
+}
+/* Let's refine the toggle CSS later or use JS. I'll rely on JS to add classes or just simplified.
+   Actually, standard toggle:
+*/
+.apaf-toggle input#apaf-op-rent:checked ~ .apaf-toggle-bg {
+     transform: translateX(88px);
+}
+
+
+/* Form Fields */
 .apaf-field {
-	margin-bottom: 20px;
+    flex: 1;
+    min-width: 150px;
 }
 
-.apaf-field label {
-	display: block;
-	font-weight: bold;
-	margin-bottom: 8px;
+/* Specific Widths for Desktop */
+.apaf-field-city { flex: 2; }
+.apaf-field-bairro { flex: 2; }
+.apaf-field-type { flex: 1.5; }
+.apaf-field-advanced { flex: 0 0 auto; }
+.apaf-field-submit { flex: 0 0 auto; }
+
+/* Select2 Customization to look minimalist */
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple {
+    height: 40px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
 }
 
-/* Selects */
-.apaf-select {
-	width: 100%;
-	padding: 8px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 40px;
+    padding-left: 10px;
+    color: #333;
 }
 
-/* Checkboxes & Radios */
-.apaf-checkbox-group label,
-.apaf-radio-group label {
-	display: inline-block;
-	margin-right: 15px;
-	cursor: pointer;
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px;
 }
 
-/* Price Slider */
+.select2-container--default .select2-selection--multiple {
+    padding: 0 5px;
+}
+
+/* Advanced Button */
+.apaf-text-btn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 40px;
+}
+.apaf-text-btn:hover {
+    color: #000;
+}
+
+/* Search Button */
+.apaf-btn-black {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0 30px;
+    height: 40px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.3s;
+}
+.apaf-btn-black:hover {
+    background: #333;
+}
+
+/* --- Modal --- */
+.apaf-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+}
+
+.apaf-modal.is-open {
+    display: block;
+}
+
+.apaf-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.apaf-modal-content {
+    position: relative;
+    background: #fff;
+    width: 90%;
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    animation: slideDown 0.3s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.apaf-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.apaf-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.apaf-modal-close {
+    background: none;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.apaf-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.apaf-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Modal Inputs */
+.apaf-simple-select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+/* Price Range */
 #apaf-price-slider {
-	margin-top: 10px;
-	margin-bottom: 15px;
-	height: 10px;
+    margin-bottom: 15px;
+    height: 10px;
 }
-
 .noUi-connect {
-	background: #0073aa; /* WordPress Blue */
+    background: #000;
+}
+.apaf-price-inputs {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    color: #555;
+}
+.apaf-price-inputs input {
+    border: none;
+    background: transparent;
+    font-weight: bold;
+    color: #333;
+    width: 120px;
+    text-align: center;
 }
 
-.apaf-price-values {
-	font-size: 0.9em;
-	color: #666;
-	margin-top: 5px;
+/* Circle Buttons */
+.apaf-detail-group {
+    margin-bottom: 15px;
+}
+.apaf-circle-buttons {
+    display: flex;
+    gap: 10px;
+}
+.apaf-circle-buttons button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.apaf-circle-buttons button:hover {
+    border-color: #000;
+}
+.apaf-circle-buttons button.active {
+    background: #000;
+    color: #fff;
+    border-color: #000;
 }
 
-/* Buttons */
-.apaf-buttons {
-	display: flex;
-	gap: 10px;
-	margin-top: 20px;
+/* Financing Checkbox */
+.apaf-checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 16px;
+}
+.apaf-checkbox-label input {
+    margin-right: 10px;
+    width: 20px;
+    height: 20px;
 }
 
-.apaf-btn {
-	padding: 10px 20px;
-	border: none;
-	border-radius: 4px;
-	cursor: pointer;
-	font-size: 1em;
-	transition: background 0.3s;
+/* Modal Footer */
+.apaf-modal-footer {
+    margin-top: 30px;
+    text-align: center;
+}
+.apaf-btn-large {
+    width: 100%;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.apaf-btn-large:hover {
+    background: #333;
 }
 
-.apaf-btn-primary {
-	background: #0073aa;
-	color: #fff;
+/* Results */
+#apaf-results-wrapper {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 15px;
 }
-
-.apaf-btn-primary:hover {
-	background: #005177;
-}
-
-.apaf-btn-secondary {
-	background: #eee;
-	color: #333;
-}
-
-.apaf-btn-secondary:hover {
-	background: #ddd;
-}
-
-/* Loading Spinner */
-#apaf-loading {
-	margin-top: 10px;
-	color: #0073aa;
-	font-weight: bold;
-}
-
-/* Results Grid */
 .apaf-results-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-	gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
 }
-
 .apaf-card {
-	border: 1px solid #ddd;
-	border-radius: 8px;
-	overflow: hidden;
-	background: #fff;
-	transition: transform 0.2s;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.2s;
 }
-
 .apaf-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
-
 .apaf-card-image {
-	height: 150px;
-	background: #eee;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	overflow: hidden;
+    height: 200px;
+    background: #f9f9f9;
+    overflow: hidden;
 }
-
 .apaf-card-image img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
-
-.apaf-placeholder-image {
-	color: #999;
-}
-
 .apaf-card-content {
-	padding: 15px;
+    padding: 15px;
+}
+.apaf-card-title {
+    margin: 0 0 10px;
+    font-size: 18px;
+}
+.apaf-card-title a {
+    text-decoration: none;
+    color: #333;
+}
+.apaf-card-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 10px;
+}
+.apaf-card-features {
+    display: flex;
+    gap: 15px;
+    color: #666;
+    font-size: 14px;
 }
 
-.apaf-card-content h4 {
-	margin: 0 0 10px;
-	font-size: 1.1em;
+/* Mobile Responsive */
+@media (max-width: 992px) {
+    .apaf-bar-inner {
+        flex-wrap: wrap;
+    }
+    .apaf-field {
+        min-width: 45%;
+    }
+    .apaf-field-submit {
+        width: 100%;
+    }
+    .apaf-btn-black {
+        width: 100%;
+    }
 }
 
-.apaf-card-content h4 a {
-	text-decoration: none;
-	color: #333;
-}
-
-.apaf-card-meta {
-	font-size: 0.9em;
-	color: #555;
-}
-
-.apaf-card-meta p {
-	margin: 5px 0;
+@media (max-width: 768px) {
+    .apaf-bar-inner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .apaf-toggle-wrapper {
+        align-self: center;
+    }
+    .apaf-field {
+        width: 100%;
+    }
+    .apaf-field-advanced {
+        text-align: center;
+    }
+    .apaf-text-btn {
+        justify-content: center;
+        width: 100%;
+    }
 }
