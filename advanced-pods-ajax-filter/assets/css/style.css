@@ -1,0 +1,316 @@
+/* Global Wrapper */
+.apaf-wrapper {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+	position: relative;
+}
+
+/* Minimalist Bar Form */
+.apaf-bar-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	background: #fff;
+	padding: 10px 15px;
+	border-radius: 50px; /* Pill shape */
+	box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+	gap: 15px;
+	justify-content: space-between;
+}
+
+.apaf-bar-item {
+	flex: 1;
+	min-width: 150px;
+	display: flex;
+	align-items: center;
+}
+
+/* Toggle Group (Buy/Rent) */
+.apaf-toggle-group {
+	display: flex;
+	background: #f0f0f0;
+	border-radius: 30px;
+	padding: 4px;
+	gap: 5px;
+	flex: 0 0 auto;
+}
+
+.apaf-toggle-btn {
+	padding: 8px 16px;
+	border-radius: 25px;
+	cursor: pointer;
+	font-size: 0.9em;
+	font-weight: 600;
+	color: #666;
+	transition: all 0.3s;
+	display: flex;
+	align-items: center;
+	margin: 0;
+}
+
+.apaf-toggle-btn input {
+	display: none;
+}
+
+.apaf-toggle-btn.active {
+	background: #fff;
+	color: #333;
+	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Minimal Selects */
+.apaf-minimal-select {
+	width: 100%;
+	border: none;
+	background: transparent;
+	font-size: 1em;
+	color: #333;
+	padding: 10px;
+	outline: none;
+	cursor: pointer;
+}
+
+/* Select2 Customization to match minimal style */
+.select2-container--default .select2-selection--multiple {
+	border: none !important;
+	background: transparent !important;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.apaf-bar-wide {
+	flex: 2; /* Neighborhood gets more space */
+	border-left: 1px solid #eee;
+	border-right: 1px solid #eee;
+	padding: 0 10px;
+}
+
+/* Search Button */
+.apaf-btn-dark {
+	background: #222;
+	color: #fff;
+	border: none;
+	width: 45px;
+	height: 45px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background 0.3s;
+	flex: 0 0 auto;
+}
+
+.apaf-btn-dark:hover {
+	background: #000;
+}
+
+.apaf-search-icon {
+	font-size: 1.2em;
+}
+
+/* Advanced Trigger */
+.apaf-advanced-trigger-wrapper {
+	text-align: center;
+	margin-top: 15px;
+}
+
+#apaf-open-modal {
+	color: #666;
+	text-decoration: none;
+	font-size: 0.9em;
+	border-bottom: 1px dashed #999;
+}
+
+/* Modal Overlay */
+.apaf-modal {
+	display: none; /* Hidden by default */
+	position: fixed;
+	z-index: 9999;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	background-color: rgba(0,0,0,0.4);
+	align-items: center;
+	justify-content: center;
+	display: none; /* Use flex when visible */
+}
+
+.apaf-modal.active {
+	display: flex;
+}
+
+.apaf-modal-content {
+	background-color: #fefefe;
+	padding: 0;
+	border-radius: 12px;
+	width: 90%;
+	max-width: 500px;
+	box-shadow: 0 5px 30px rgba(0,0,0,0.2);
+	animation: apafFadeIn 0.3s;
+}
+
+@keyframes apafFadeIn {
+	from {opacity: 0; transform: translateY(-20px);}
+	to {opacity: 1; transform: translateY(0);}
+}
+
+.apaf-modal-header {
+	padding: 20px;
+	border-bottom: 1px solid #eee;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.apaf-modal-header h3 {
+	margin: 0;
+	font-size: 1.2em;
+}
+
+.apaf-close-modal {
+	color: #aaa;
+	font-size: 28px;
+	font-weight: bold;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.apaf-close-modal:hover {
+	color: #000;
+}
+
+.apaf-modal-body {
+	padding: 20px;
+}
+
+.apaf-modal-field {
+	margin-bottom: 25px;
+}
+
+.apaf-modal-field label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 10px;
+	color: #333;
+}
+
+/* Radio Boxes for Modal */
+.apaf-radio-group-boxes {
+	display: flex;
+	gap: 10px;
+}
+
+.apaf-radio-group-boxes label {
+	flex: 1;
+	text-align: center;
+	border: 1px solid #ddd;
+	padding: 10px;
+	border-radius: 8px;
+	cursor: pointer;
+	margin: 0;
+	font-weight: normal;
+	transition: all 0.2s;
+}
+
+.apaf-radio-group-boxes label:has(input:checked) {
+	background: #222;
+	color: #fff;
+	border-color: #222;
+}
+
+.apaf-radio-group-boxes input {
+	display: none;
+}
+
+/* Slider in Modal */
+#apaf-price-slider {
+	margin: 15px 10px;
+}
+.apaf-price-values {
+	text-align: center;
+	font-weight: 600;
+	color: #555;
+	margin-top: 10px;
+}
+
+/* Modal Footer */
+.apaf-modal-footer {
+	padding: 20px;
+	border-top: 1px solid #eee;
+	text-align: center;
+}
+
+.apaf-btn-primary {
+	background: #222;
+	color: #fff;
+	border: none;
+	padding: 12px 30px;
+	border-radius: 30px;
+	font-size: 1em;
+	cursor: pointer;
+	width: 100%;
+}
+
+.apaf-btn-primary:hover {
+	background: #000;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.apaf-bar-form {
+		flex-direction: column;
+		border-radius: 12px;
+		align-items: stretch;
+	}
+
+	.apaf-bar-wide {
+		border: none;
+		border-top: 1px solid #eee;
+		border-bottom: 1px solid #eee;
+		padding: 10px 0;
+	}
+
+	.apaf-bar-item {
+		width: 100%;
+	}
+
+	.apaf-search-btn {
+		width: 100%;
+		border-radius: 8px;
+	}
+
+    .apaf-btn-dark {
+        width: 100%;
+        border-radius: 8px;
+    }
+}
+
+/* Spinner */
+.apaf-spinner {
+	border: 4px solid #f3f3f3;
+	border-top: 4px solid #333;
+	border-radius: 50%;
+	width: 30px;
+	height: 30px;
+	animation: spin 1s linear infinite;
+	margin: 20px auto;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+.apaf-checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
