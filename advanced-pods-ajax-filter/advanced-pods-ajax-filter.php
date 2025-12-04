@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Advanced Pods AJAX Filter
  * Description: Custom advanced search and filtering system for 'imovel' CPT using AJAX.
- * Version: 1.0.0
+ * Version: 4.0.0
  * Author: Jules
  * Text Domain: advanced-pods-ajax-filter
  */
@@ -21,14 +21,15 @@ function apaf_enqueue_scripts() {
 	// Styles
 	wp_enqueue_style( 'select2-css', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0' );
 	wp_enqueue_style( 'nouislider-css', 'https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css', array(), '15.7.0' );
-	wp_enqueue_style( 'apaf-style', APAF_URL . 'assets/css/style.css', array(), '1.0.0' );
+	wp_enqueue_style( 'apaf-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap', array(), '1.0.0' );
+	wp_enqueue_style( 'apaf-style', APAF_URL . 'assets/css/style.css', array(), '4.0.0' );
 
 	// Scripts
 	wp_enqueue_style( 'dashicons' );
 
 	wp_enqueue_script( 'select2-js', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0', true );
 	wp_enqueue_script( 'nouislider-js', 'https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js', array(), '15.7.0', true );
-	wp_enqueue_script( 'apaf-script', APAF_URL . 'assets/js/script.js', array( 'jquery', 'select2-js', 'nouislider-js' ), '1.0.0', true );
+	wp_enqueue_script( 'apaf-script', APAF_URL . 'assets/js/script.js', array( 'jquery', 'select2-js', 'nouislider-js' ), '4.0.0', true );
 
 	// Localize script for AJAX
 	wp_localize_script( 'apaf-script', 'apaf_obj', array(

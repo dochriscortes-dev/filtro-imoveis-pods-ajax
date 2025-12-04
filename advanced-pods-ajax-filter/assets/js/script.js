@@ -1,207 +1,217 @@
 jQuery(document).ready(function($) {
 
-    // --- 1. Initialization ---
+	// 1. Initialize Components
 
-    // Initialize Select2 for City
-    $('#apaf-cidade').select2({
-        width: '100%',
-        minimumResultsForSearch: 10 // Hide search if few options, keeps it clean
-    });
+	// Select2
+	$('.apaf-select2').select2({
+		minimumResultsForSearch: 10, // hide search if few options
+		width: '100%'
+	});
 
-    // Initialize Select2 for Neighborhood (Dependent)
-    $('#apaf-bairro').select2({
-        width: '100%',
-        language: {
-            noResults: function() {
-                return "Selecione uma cidade primeiro";
-            }
-        }
-    });
+	// noUiSlider (Price Range)
+	const priceSlider = document.getElementById('apaf-price-slider');
+	if (priceSlider) {
+		noUiSlider.create(priceSlider, {
+			start: [20000, 50000000],
+			connect: true,
+			range: {
+				'min': 0,
+				'max': 100000000
+			},
+			step: 10000,
+			format: {
+				to: function (value) {
+					return Math.round(value);
+				},
+				from: function (value) {
+					return Number(value);
+				}
+			}
+		});
 
-    // Initialize Select2 for Property Type
-    $('#apaf-tipo').select2({
-        width: '100%',
-        closeOnSelect: false // Keep open for multiple selection
-    });
+		const minInput = document.getElementById('apaf-price-min');
+		const maxInput = document.getElementById('apaf-price-max');
 
-    // Initialize Select2 for Zone (Modal)
-    $('#apaf-zona').select2({
-        width: '100%',
-        minimumResultsForSearch: Infinity // Disable search for small lists
-    });
+		// Link slider to inputs
+		priceSlider.noUiSlider.on('update', function (values, handle) {
+			const value = values[handle];
+			if (handle === 0) {
+				minInput.value = formatCurrency(value);
+			} else {
+				maxInput.value = formatCurrency(value);
+			}
+		});
 
-    // Initialize noUiSlider for Price
-    var priceSlider = document.getElementById('apaf-price-slider');
-    if (priceSlider) {
-        noUiSlider.create(priceSlider, {
-            start: [20000, 50000000], // Start at full range
-            connect: true,
-            range: {
-                'min': 20000, // R$ 20k
-                'max': 50000000 // R$ 50M
-            },
-            step: 10000,
-            format: {
-                to: function (value) {
-                    return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                },
-                from: function (value) {
-                    // Remove R$, dots, spaces
-                    return Number(value.replace(/[^0-9.-]+/g,""));
-                }
-            }
-        });
+		// Link inputs to slider
+		minInput.addEventListener('change', function () {
+			priceSlider.noUiSlider.set([parseCurrency(this.value), null]);
+		});
+		maxInput.addEventListener('change', function () {
+			priceSlider.noUiSlider.set([null, parseCurrency(this.value)]);
+		});
+	}
 
-        var minPriceInput = document.getElementById('apaf-input-min-price');
-        var maxPriceInput = document.getElementById('apaf-input-max-price');
-        var minPriceDisplay = document.getElementById('apaf-price-display-min');
-        var maxPriceDisplay = document.getElementById('apaf-price-display-max');
+	function formatCurrency(val) {
+		return new Intl.NumberFormat('pt-BR').format(val);
+	}
+	function parseCurrency(val) {
+		return parseInt(val.replace(/\./g, '').replace(/,/g, '.'));
+	}
 
-        priceSlider.noUiSlider.on('update', function (values, handle) {
-            var value = values[handle];
-            var unformatted = priceSlider.noUiSlider.get(true)[handle];
 
-            if (handle) {
-                maxPriceDisplay.value = value;
-                maxPriceInput.value = Math.round(unformatted);
-            } else {
-                minPriceDisplay.value = value;
-                minPriceInput.value = Math.round(unformatted);
-            }
-        });
-    }
+	// 2. UI Interactions
 
-    // --- 2. Smart Dependency (City -> Neighborhood) ---
-    $('#apaf-cidade').on('change', function() {
-        var citySlug = $(this).val();
-        var $bairroSelect = $('#apaf-bairro');
+	// Modal Toggle
+	$('#apaf-open-modal').on('click', function(e) {
+		e.preventDefault();
+		$('#apaf-modal-overlay').addClass('open');
+		$('body').css('overflow', 'hidden'); // Prevent background scrolling
+	});
+	$('#apaf-close-modal, #apaf-apply-filters').on('click', function(e) {
+		e.preventDefault();
+		$('#apaf-modal-overlay').removeClass('open');
+		$('body').css('overflow', '');
+	});
+	$('#apaf-modal-overlay').on('click', function(e) {
+		if ($(e.target).is('#apaf-modal-overlay')) {
+			$(this).removeClass('open');
+			$('body').css('overflow', '');
+		}
+	});
 
-        // Clear existing options
-        $bairroSelect.empty();
-        $bairroSelect.prop('disabled', true);
+	// Numeric Specs Buttons (Soft Squares)
+	$('.apaf-num-buttons button').on('click', function() {
+		const $btn = $(this);
+		const $parent = $btn.closest('.apaf-num-buttons');
+		const field = $parent.data('field');
+		const val = $btn.data('val');
 
-        if (citySlug) {
-            $.ajax({
-                url: apaf_obj.ajax_url,
-                type: 'GET',
-                data: {
-                    action: 'apaf_get_bairros',
-                    cidade_slug: citySlug,
-                    nonce: apaf_obj.nonce
-                },
-                success: function(response) {
-                    if (response.success && response.data.length > 0) {
-                        $.each(response.data, function(index, item) {
-                            var newOption = new Option(item.text, item.id, false, false);
-                            $bairroSelect.append(newOption);
-                        });
-                        $bairroSelect.prop('disabled', false);
-                    }
-                    // Trigger change to update Select2 UI
-                    $bairroSelect.trigger('change');
-                },
-                error: function() {
-                    console.log('Error fetching neighborhoods');
-                }
-            });
-        } else {
-            // If city cleared, disable bairro
-            $bairroSelect.trigger('change');
-        }
-    });
+		// Toggle logic: if clicking active, unselect. If clicking other, switch active.
+		if ($btn.hasClass('active')) {
+			$btn.removeClass('active');
+			$('#apaf-' + field + '-input').val('');
+		} else {
+			$parent.find('button').removeClass('active');
+			$btn.addClass('active');
+			$('#apaf-' + field + '-input').val(val);
+		}
+	});
 
-    // --- 3. UI Interactions ---
 
-    // Modal Open
-    $('#apaf-btn-advanced').on('click', function() {
-        $('#apaf-modal').addClass('is-open').attr('aria-hidden', 'false');
-        $('body').css('overflow', 'hidden'); // Prevent scrolling
-    });
+	// 3. Logic: City -> Neighborhood Dependency (AJAX)
 
-    // Modal Close
-    $('.apaf-modal-close, .apaf-modal-overlay').on('click', function() {
-        $('#apaf-modal').removeClass('is-open').attr('aria-hidden', 'true');
-        $('body').css('overflow', '');
-    });
+	$('#apaf-city-select').on('change', function() {
+		const citySlug = $(this).val();
+		const $neighborhoodSelect = $('#apaf-neighborhood-select');
 
-    // Soft Square Buttons Selection
-    $('.apaf-circle-buttons button').on('click', function() {
-        var $btn = $(this);
-        var $group = $btn.closest('.apaf-circle-buttons');
-        var targetInputId = '#apaf-input-' + $group.data('target');
+		if (!citySlug) {
+			$neighborhoodSelect.prop('disabled', true).html('<option value="">Bairro</option>').trigger('change');
+			return;
+		}
 
-        // Check if already active (toggle off)
-        if ($btn.hasClass('active')) {
-            $btn.removeClass('active');
-            $(targetInputId).val(''); // Reset
-        } else {
-            // Remove active class from siblings
-            $group.find('button').removeClass('active');
-            // Add active class to clicked
-            $btn.addClass('active');
-            // Set hidden input value
-            $(targetInputId).val($btn.data('value'));
-        }
-    });
+		$neighborhoodSelect.prop('disabled', true); // Disable while loading
 
-    // --- 4. Search Execution ---
+		$.ajax({
+			url: apaf_obj.ajax_url,
+			type: 'POST',
+			data: {
+				action: 'apaf_get_bairros',
+				nonce: apaf_obj.nonce,
+				cidade: citySlug
+			},
+			success: function(response) {
+				if (response.success) {
+					let options = '<option value="">Bairro</option>';
+					$.each(response.data, function(index, item) {
+						options += `<option value="${item.id}">${item.text}</option>`;
+					});
+					$neighborhoodSelect.html(options).prop('disabled', false).trigger('change');
+				} else {
+					console.error('Error fetching neighborhoods:', response);
+					$neighborhoodSelect.prop('disabled', false); // Re-enable even if empty? maybe leave disabled if empty.
+				}
+			},
+			error: function() {
+				console.error('AJAX error');
+				$neighborhoodSelect.prop('disabled', false);
+			}
+		});
+	});
 
-    function performSearch() {
-        // Collect data from Sticky Bar form
-        var barData = $('#apaf-main-form').serializeArray();
 
-        // Collect data from Modal (inputs not in main form)
-        // We select inputs inside the modal container.
-        var modalInputs = $('#apaf-modal :input').serializeArray();
+	// 4. Logic: Search / Filter (AJAX)
 
-        // Combine arrays. $.merge modifies first argument.
-        var combinedData = $.merge($.merge([], barData), modalInputs);
+	function doSearch(paged = 1) {
+		const $results = $('#apaf-results');
+		$results.css('opacity', '0.5'); // Visual loading state
 
-        // Add action and nonce
-        combinedData.push({name: 'action', value: 'apaf_filter_imoveis'});
-        combinedData.push({name: 'nonce', value: apaf_obj.nonce});
+		// Gather Data
+		const data = {
+			action: 'apaf_filter_imoveis',
+			nonce: apaf_obj.nonce,
+			paged: paged,
+			// Main Bar
+			finalidade: $('input[name="finalidade"]:checked').val(),
+			cidade: $('#apaf-city-select').val(),
+			bairro: $('#apaf-neighborhood-select').val(),
+			// Modal
+			tipo_imovel: [],
+			min_price: parseCurrency($('#apaf-price-min').val() || '0'),
+			max_price: parseCurrency($('#apaf-price-max').val() || '0'),
+			quartos: $('#apaf-quartos-input').val(),
+			banheiros: $('#apaf-banheiros-input').val(),
+			vagas: $('#apaf-vagas-input').val(),
+			zona: $('#apaf-zona-select').val(),
+			aceita_financiamento: $('input[name="aceita_financiamento"]').is(':checked') ? 1 : 0
+		};
 
-        // Show Loader
-        $('#apaf-results-loader').show();
-        $('#apaf-results-container').css('opacity', '0.5');
+		// Gather Checkboxes
+		$('input[name="tipo_imovel[]"]:checked').each(function() {
+			data.tipo_imovel.push($(this).val());
+		});
 
-        // Close Modal if open
-        $('#apaf-modal').removeClass('is-open').attr('aria-hidden', 'true');
-        $('body').css('overflow', '');
+		$.ajax({
+			url: apaf_obj.ajax_url,
+			type: 'POST',
+			data: data,
+			success: function(response) {
+				$results.html(response).css('opacity', '1');
+			},
+			error: function() {
+				$results.html('<p>Ocorreu um erro na busca.</p>').css('opacity', '1');
+			}
+		});
+	}
 
-        $.ajax({
-            url: apaf_obj.ajax_url,
-            type: 'POST',
-            data: combinedData,
-            success: function(response) {
-                $('#apaf-results-loader').hide();
-                $('#apaf-results-container').css('opacity', '1');
+	// Trigger Search
+	$('#apaf-search-btn').on('click', function() {
+		doSearch(1);
+	});
 
-                if (response.success) {
-                    $('#apaf-results-container').html(response.data.html);
-                } else {
-                    $('#apaf-results-container').html('<div class="apaf-no-results">Nenhum imóvel encontrado.</div>');
-                }
-            },
-            error: function() {
-                $('#apaf-results-loader').hide();
-                $('#apaf-results-container').css('opacity', '1');
-                $('#apaf-results-container').html('<div class="apaf-no-results">Erro de conexão. Tente novamente.</div>');
-            }
-        });
-    }
+	// Apply filters from modal also triggers search
+	$('#apaf-apply-filters').on('click', function() {
+		doSearch(1);
+	});
 
-    // Bind Search Buttons
-    $('#apaf-btn-search').on('click', function(e) {
-        e.preventDefault();
-        performSearch();
-    });
+	// Pagination Click (Delegated)
+	$(document).on('click', '.apaf-pagination a', function(e) {
+		e.preventDefault();
+		const link = $(this).attr('href');
+		// Extract paged arg from link or just assume normal WP structure
+		// Using a simplified regex to find paged parameter if clean URL
+		// Or if format is ?paged=N
+		let paged = 1;
+		const match = link.match(/paged=(\d+)/) || link.match(/\/page\/(\d+)/);
+		if (match) {
+			paged = match[1];
+		}
 
-    $('#apaf-btn-apply').on('click', function(e) {
-        e.preventDefault();
-        performSearch();
-    });
+		doSearch(paged);
 
-    // Optional: Trigger search on enter key in inputs?
-    // Not strictly requested but good UX.
+		// Scroll to top of results
+		$('html, body').animate({
+			scrollTop: $("#apaf-results").offset().top - 100
+		}, 500);
+	});
+
 });
