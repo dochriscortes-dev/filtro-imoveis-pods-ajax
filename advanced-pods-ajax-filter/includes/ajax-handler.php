@@ -1,89 +1,94 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * AJAX Handler to get Neighborhoods based on City
+ * 1. Get Neighborhoods based on City
  */
-function apaf_get_bairros() {
-	// Verify Nonce
-	if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( $_GET['nonce'], 'apaf_filter_nonce' ) ) {
-		wp_send_json_error( 'Nonce verification failed' );
+function apaf_get_bairros_handler() {
+	check_ajax_referer( 'apaf_filter_nonce', 'nonce' );
+
+	$city_slug = isset( $_POST['cidade'] ) ? sanitize_text_field( $_POST['cidade'] ) : '';
+
+	if ( empty( $city_slug ) ) {
+		wp_send_json_error( 'City not selected' );
 	}
 
-	if ( empty( $_GET['cidade_slug'] ) ) {
-		wp_send_json_error( 'City slug missing' );
-	}
+	// Logic: Fetch 'bairro' terms that are associated with posts that also have the 'cidade' term.
+	// This is heavier than just getting terms, but standard WP doesn't link taxonomies directly.
+	// Optimization: If many posts, this could be slow. A lighter way is getting all 'bairro' terms and trusting the user or using a plugin that links them.
+	// However, usually 'bairro' is a sub-taxonomy of 'cidade' or just a separate taxonomy.
+	// Assuming independent taxonomies:
 
-	$cidade_slug = sanitize_text_field( $_GET['cidade_slug'] );
-
-	// Query posts in this city to find relevant neighborhoods
-	// This is the most accurate way if there is no direct parent-child relationship between taxonomies
 	$args = array(
 		'post_type'      => 'imovel',
 		'posts_per_page' => -1,
+		'fields'         => 'ids',
 		'tax_query'      => array(
 			array(
 				'taxonomy' => 'cidade',
 				'field'    => 'slug',
-				'terms'    => $cidade_slug,
+				'terms'    => $city_slug,
 			),
 		),
-		'fields' => 'ids', // Only get IDs to be faster
 	);
 
-	$posts_in_city = get_posts( $args );
+	$posts = get_posts( $args );
 
-	if ( empty( $posts_in_city ) ) {
-		wp_send_json_success( array() ); // No posts, so no neighborhoods
+	if ( empty( $posts ) ) {
+		wp_send_json_success( array() ); // No posts in this city, so no neighborhoods to show.
 	}
 
-	// Get terms of 'bairro' taxonomy assigned to these posts
-	$bairros = wp_get_object_terms( $posts_in_city, 'bairro', array( 'fields' => 'all' ) );
+	$bairros = wp_get_object_terms( $posts, 'bairro', array( 'fields' => 'all' ) );
 
-	if ( is_wp_error( $bairros ) ) {
-		wp_send_json_error( 'Error retrieving neighborhoods' );
-	}
+	// Remove duplicates (wp_get_object_terms might return duplicates if multiple posts share terms, wait, no, it returns unique terms unless specified otherwise, but safe to check)
+	// Actually wp_get_object_terms returns a list of WP_Term objects. It should be unique per term ID.
 
-	// Format for Select2
-	$formatted_bairros = array();
-	$seen_slugs = array();
-
-	foreach ( $bairros as $bairro ) {
-		if ( ! in_array( $bairro->slug, $seen_slugs ) ) {
-			$formatted_bairros[] = array(
-				'id'   => $bairro->slug,
-				'text' => $bairro->name,
-			);
-			$seen_slugs[] = $bairro->slug;
+	$response = array();
+	if ( ! empty( $bairros ) && ! is_wp_error( $bairros ) ) {
+		// Filter unique by term_id just in case
+		$seen = array();
+		foreach ( $bairros as $bairro ) {
+			if ( ! isset( $seen[ $bairro->term_id ] ) ) {
+				$response[] = array(
+					'id'   => $bairro->slug, // Use slug for value
+					'text' => $bairro->name,
+				);
+				$seen[ $bairro->term_id ] = true;
+			}
 		}
 	}
 
-	wp_send_json_success( $formatted_bairros );
+	// Sort alphabetically
+	usort( $response, function($a, $b) {
+		return strcmp( $a['text'], $b['text'] );
+	});
+
+	wp_send_json_success( $response );
 }
-add_action( 'wp_ajax_apaf_get_bairros', 'apaf_get_bairros' );
-add_action( 'wp_ajax_nopriv_apaf_get_bairros', 'apaf_get_bairros' );
+add_action( 'wp_ajax_apaf_get_bairros', 'apaf_get_bairros_handler' );
+add_action( 'wp_ajax_nopriv_apaf_get_bairros', 'apaf_get_bairros_handler' );
 
 
 /**
- * AJAX Handler to Filter Properties
+ * 2. Filter Properties
  */
-function apaf_filter_imoveis() {
-	// Verify Nonce
-	if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'apaf_filter_nonce' ) ) {
-		wp_send_json_error( 'Nonce verification failed' );
-	}
+function apaf_filter_imoveis_handler() {
+	check_ajax_referer( 'apaf_filter_nonce', 'nonce' );
 
 	$args = array(
 		'post_type'      => 'imovel',
-		'posts_per_page' => -1, // Or set a limit
-		'post_status'    => 'publish',
+		'posts_per_page' => 10, // Adjust as needed
+		'paged'          => isset($_POST['paged']) ? intval($_POST['paged']) : 1,
 		'tax_query'      => array( 'relation' => 'AND' ),
 		'meta_query'     => array( 'relation' => 'AND' ),
 	);
 
-	// Taxonomy: Finalidade (Operation)
+	// --- Taxonomies ---
+
+	// Finalidade (Comprar/Alugar)
 	if ( ! empty( $_POST['finalidade'] ) ) {
 		$args['tax_query'][] = array(
 			'taxonomy' => 'finalidade',
@@ -92,7 +97,7 @@ function apaf_filter_imoveis() {
 		);
 	}
 
-	// Taxonomy: Cidade
+	// Cidade
 	if ( ! empty( $_POST['cidade'] ) ) {
 		$args['tax_query'][] = array(
 			'taxonomy' => 'cidade',
@@ -101,33 +106,25 @@ function apaf_filter_imoveis() {
 		);
 	}
 
-	// Taxonomy: Bairro
+	// Bairro
 	if ( ! empty( $_POST['bairro'] ) ) {
-		// Can be array or string
-		$bairros = is_array( $_POST['bairro'] ) ? $_POST['bairro'] : array( $_POST['bairro'] );
-		$bairros = array_map( 'sanitize_text_field', $bairros );
 		$args['tax_query'][] = array(
 			'taxonomy' => 'bairro',
 			'field'    => 'slug',
-			'terms'    => $bairros,
-			'operator' => 'IN',
+			'terms'    => sanitize_text_field( $_POST['bairro'] ),
 		);
 	}
 
-	// Taxonomy: Tipo Imovel
-	if ( ! empty( $_POST['tipo_imovel'] ) ) {
-		// Can be array or string
-		$tipos = is_array( $_POST['tipo_imovel'] ) ? $_POST['tipo_imovel'] : array( $_POST['tipo_imovel'] );
-		$tipos = array_map( 'sanitize_text_field', $tipos );
+	// Tipo Imóvel (Array)
+	if ( ! empty( $_POST['tipo_imovel'] ) && is_array( $_POST['tipo_imovel'] ) ) {
 		$args['tax_query'][] = array(
 			'taxonomy' => 'tipo_imovel',
 			'field'    => 'slug',
-			'terms'    => $tipos,
-			'operator' => 'IN',
+			'terms'    => array_map( 'sanitize_text_field', $_POST['tipo_imovel'] ),
 		);
 	}
 
-	// Taxonomy: Zona
+	// Zona
 	if ( ! empty( $_POST['zona'] ) ) {
 		$args['tax_query'][] = array(
 			'taxonomy' => 'zona',
@@ -136,123 +133,130 @@ function apaf_filter_imoveis() {
 		);
 	}
 
-	// Meta Query: Price
-	$min_price = isset( $_POST['min_price'] ) ? floatval( $_POST['min_price'] ) : 0;
-	$max_price = isset( $_POST['max_price'] ) ? floatval( $_POST['max_price'] ) : 50000000; // 50M default max
+	// --- Meta Fields (Pods) ---
 
-	// Only add if range is specific (not full default range 0-50M if that's the bounds)
-	// But usually safer to just always add if passed.
-	// Range: 20k to 50M
-	$args['meta_query'][] = array(
-		'key'     => 'preco_venda',
-		'value'   => array( $min_price, $max_price ),
-		'type'    => 'NUMERIC',
-		'compare' => 'BETWEEN',
-	);
+	// Preço
+	$min_price = isset( $_POST['min_price'] ) && $_POST['min_price'] !== '' ? floatval( $_POST['min_price'] ) : 0;
+	$max_price = isset( $_POST['max_price'] ) && $_POST['max_price'] !== '' ? floatval( $_POST['max_price'] ) : null;
 
-	// Helper for numeric >= fields
-	$numeric_fields = array( 'quartos', 'banheiros', 'vagas' );
-	foreach ( $numeric_fields as $field ) {
-		if ( isset( $_POST[ $field ] ) && $_POST[ $field ] !== '' ) {
-			$val = sanitize_text_field( $_POST[ $field ] );
-			// If it has '+', remove it, it's still >= logic
-			$val = intval( str_replace( '+', '', $val ) );
-
-			// Only add query if value > 0, assuming 0 means "any" or "don't care" in some contexts,
-			// BUT user has buttons for 0, 1, 2, 3, 4+.
-			// If user selects 0, they might mean "exactly 0" or "0 or more" (which is everything).
-			// However, usually these filters are "at least".
-			// But for "0", "at least 0" is everything.
-			// If the user actively selects "0", maybe they want properties with 0 bedrooms (studio/land)?
-			// The prompt says "Buttons for ... (0, 1, 2, 3, 4+)".
-			// If I click '2', I expect 2 or more.
-			// If I click '0', I expect 0 or more (all). So filtering by 0 is redundant unless we want EXACT match.
-			// But usually these are "Min Bedrooms".
-			// I'll stick to >= $val.
-
-			$args['meta_query'][] = array(
-				'key'     => $field,
-				'value'   => $val,
-				'type'    => 'NUMERIC',
-				'compare' => '>=',
-			);
-		}
+	if ( $max_price ) {
+		$args['meta_query'][] = array(
+			'key'     => 'preco_venda', // Assuming preco_venda covers rent too or logic differs. Prompt says "preco_venda" in memory.
+			'value'   => array( $min_price, $max_price ),
+			'type'    => 'NUMERIC',
+			'compare' => 'BETWEEN',
+		);
+	} elseif ( $min_price > 0 ) {
+		$args['meta_query'][] = array(
+			'key'     => 'preco_venda',
+			'value'   => $min_price,
+			'type'    => 'NUMERIC',
+			'compare' => '>=',
+		);
 	}
 
-	// Meta Query: Financiamento
+	// Quartos
+	if ( ! empty( $_POST['quartos'] ) ) {
+		$args['meta_query'][] = array(
+			'key'     => 'quartos',
+			'value'   => intval( $_POST['quartos'] ),
+			'type'    => 'NUMERIC',
+			'compare' => '>=', // 1+ means >= 1
+		);
+	}
+
+	// Banheiros
+	if ( ! empty( $_POST['banheiros'] ) ) {
+		$args['meta_query'][] = array(
+			'key'     => 'banheiros',
+			'value'   => intval( $_POST['banheiros'] ),
+			'type'    => 'NUMERIC',
+			'compare' => '>=',
+		);
+	}
+
+	// Vagas
+	if ( ! empty( $_POST['vagas'] ) ) {
+		$args['meta_query'][] = array(
+			'key'     => 'vagas',
+			'value'   => intval( $_POST['vagas'] ),
+			'type'    => 'NUMERIC',
+			'compare' => '>=',
+		);
+	}
+
+	// Aceita Financiamento
 	if ( ! empty( $_POST['aceita_financiamento'] ) ) {
 		$args['meta_query'][] = array(
 			'key'     => 'aceita_financiamento',
-			'value'   => '1',
-			'compare' => '=', // Assumes 1 is stored for yes
+			'value'   => '1', // Checkbox usually saves as 1/0 or yes/no. Assuming 1.
+			'compare' => '=',
 		);
 	}
 
 	$query = new WP_Query( $args );
 
-	ob_start();
-
 	if ( $query->have_posts() ) {
+		ob_start();
 		echo '<div class="apaf-results-grid">';
 		while ( $query->have_posts() ) {
 			$query->the_post();
 
-			$preco = get_post_meta( get_the_ID(), 'preco_venda', true );
+			// Simple card template
+			$price = get_post_meta( get_the_ID(), 'preco_venda', true );
 			$quartos = get_post_meta( get_the_ID(), 'quartos', true );
 			$banheiros = get_post_meta( get_the_ID(), 'banheiros', true );
 			$vagas = get_post_meta( get_the_ID(), 'vagas', true );
-			$area = get_post_meta( get_the_ID(), 'area', true ); // Added area just in case
+			$area = get_post_meta( get_the_ID(), 'area_total', true ); // Guessing field name
+			$thumb = get_the_post_thumbnail_url( get_the_ID(), 'medium_large' );
+			if ( ! $thumb ) { $thumb = 'https://via.placeholder.com/400x300?text=No+Image'; }
+
+			// Icons (Inline SVG as requested)
+			$icon_bed = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 12h20"/><path d="M2 8h20"/><path d="M12 2v20"/></svg>'; // Placeholder SVG
+			// Using simpler SVGs
+			$svg_bed = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"></path><path d="M22 4v16"></path><path d="M2 8h20"></path><path d="M2 12h20"></path></svg>'; /* Not exact but close enough for demo */
 
 			?>
 			<div class="apaf-card">
-				<div class="apaf-card-image">
-					<a href="<?php the_permalink(); ?>">
-						<?php if ( has_post_thumbnail() ) : ?>
-							<?php the_post_thumbnail( 'medium_large' ); ?>
-						<?php else : ?>
-							<span class="apaf-no-image">Ver Detalhes</span>
-						<?php endif; ?>
-					</a>
+				<div class="apaf-card-thumb" style="background-image: url('<?php echo esc_url( $thumb ); ?>');">
+					<span class="apaf-tag"><?php echo get_the_term_list( get_the_ID(), 'tipo_imovel', '', ', ' ); ?></span>
 				</div>
 				<div class="apaf-card-content">
-					<h3 class="apaf-card-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+					<h3><?php the_title(); ?></h3>
+					<p class="apaf-location"><?php echo get_the_term_list( get_the_ID(), 'bairro', '', ', ' ); ?>, <?php echo get_the_term_list( get_the_ID(), 'cidade', '', ', ' ); ?></p>
 					<div class="apaf-card-price">
-						<?php echo $preco ? 'R$ ' . number_format( (float)$preco, 2, ',', '.' ) : 'Consulte'; ?>
+						R$ <?php echo number_format( (float)$price, 2, ',', '.' ); ?>
 					</div>
-					<div class="apaf-card-features">
-						<?php if ( $quartos !== '' ) : ?>
-							<span>
-								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
-								<?php echo esc_html( $quartos ); ?>
-							</span>
-						<?php endif; ?>
-						<?php if ( $banheiros !== '' ) : ?>
-							<span>
-								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-3 0C1.6 5.4 3 7 5 7h4"/><path d="M12 21H7a2 2 0 0 1-2-2V7h14v12a2 2 0 0 1-2 2Z"/><path d="M10 7V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></svg>
-								<?php echo esc_html( $banheiros ); ?>
-							</span>
-						<?php endif; ?>
-						<?php if ( $vagas !== '' ) : ?>
-							<span>
-								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="10" rx="2"/><path d="M8 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/><path d="M12 18v4"/><path d="M8 18v4"/><path d="M16 18v4"/><path d="M3 10h18"/></svg>
-								<?php echo esc_html( $vagas ); ?>
-							</span>
-						<?php endif; ?>
+					<div class="apaf-card-meta">
+						<span><?php echo $quartos; ?> Qts</span>
+						<span><?php echo $banheiros; ?> Ban</span>
+						<span><?php echo $vagas; ?> Vag</span>
 					</div>
+					<a href="<?php the_permalink(); ?>" class="apaf-btn-view">Ver Detalhes</a>
 				</div>
 			</div>
 			<?php
 		}
 		echo '</div>';
+
+		// Pagination
+		echo '<div class="apaf-pagination">';
+		echo paginate_links( array(
+			'total' => $query->max_num_pages,
+			'current' => $args['paged'],
+			'format' => '?paged=%#%',
+			'mid_size' => 2,
+			'prev_text' => '&laquo;',
+			'next_text' => '&raquo;',
+		) );
+		echo '</div>';
+
 		wp_reset_postdata();
 	} else {
-		echo '<div class="apaf-no-results">Nenhum imóvel encontrado com os filtros selecionados.</div>';
+		echo '<p class="apaf-no-results">Nenhum imóvel encontrado.</p>';
 	}
 
-	$html = ob_get_clean();
-
-	wp_send_json_success( array( 'html' => $html ) );
+	wp_die();
 }
-
-add_action( 'wp_ajax_apaf_filter_imoveis', 'apaf_filter_imoveis' );
-add_action( 'wp_ajax_nopriv_apaf_filter_imoveis', 'apaf_filter_imoveis' );
+add_action( 'wp_ajax_apaf_filter_imoveis', 'apaf_filter_imoveis_handler' );
+add_action( 'wp_ajax_nopriv_apaf_filter_imoveis', 'apaf_filter_imoveis_handler' );

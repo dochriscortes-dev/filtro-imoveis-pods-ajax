@@ -1,207 +1,188 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-function apaf_shortcode_render( $atts ) {
-	// Attributes if needed in future
-	$atts = shortcode_atts( array(), $atts, 'pods_advanced_filter' );
+function apaf_search_shortcode() {
+	// Get terms for drop-downs
+	$cidades = get_terms( array(
+		'taxonomy'   => 'cidade',
+		'hide_empty' => true,
+	) );
 
-	// Fetch Taxonomies
-	$cidades = get_terms( array( 'taxonomy' => 'cidade', 'hide_empty' => true ) );
-	$tipos_imovel = get_terms( array( 'taxonomy' => 'tipo_imovel', 'hide_empty' => true ) );
-	$zonas = get_terms( array( 'taxonomy' => 'zona', 'hide_empty' => false ) ); // Maybe false to show options even if empty? Safe to use true usually.
-	$finalidades = get_terms( array( 'taxonomy' => 'finalidade', 'hide_empty' => false ) );
-
-	// Determine Buy/Rent slugs for the toggle
-	$buy_slug = '';
-	$rent_slug = '';
-
-	if ( ! is_wp_error( $finalidades ) ) {
-		foreach ( $finalidades as $term ) {
-			if ( in_array( $term->slug, array( 'comprar', 'venda', 'buy', 'sales' ) ) ) {
-				$buy_slug = $term->slug;
-			} elseif ( in_array( $term->slug, array( 'alugar', 'aluguel', 'rent', 'lease' ) ) ) {
-				$rent_slug = $term->slug;
-			}
-		}
-		// Fallback if specific slugs not found, just take first two
-		if ( ! $buy_slug && ! $rent_slug && count( $finalidades ) >= 2 ) {
-			$buy_slug = $finalidades[0]->slug;
-			$rent_slug = $finalidades[1]->slug;
-		}
-	}
+	// Get terms for property types (checkbox grid)
+	$tipos = get_terms( array(
+		'taxonomy'   => 'tipo_imovel',
+		'hide_empty' => false, // Show all types even if empty? Usually better to hide empty, but prompt implies 'Display all'. I'll stick to hide_empty=false for now.
+	) );
 
 	ob_start();
 	?>
-	<div id="apaf-container">
+	<div id="apaf-root">
 
-		<!-- Sticky Search Bar -->
-		<div id="apaf-search-bar" class="apaf-bar">
-			<form id="apaf-main-form">
-				<div class="apaf-bar-inner">
+		<!-- 1. STICKY BAR -->
+		<div id="apaf-search-bar">
 
-					<!-- 1. Operation Toggle -->
-					<div class="apaf-field apaf-toggle-wrapper">
-						<div class="apaf-toggle">
-							<input type="radio" name="finalidade" id="apaf-op-buy" value="<?php echo esc_attr( $buy_slug ); ?>" checked>
-							<label for="apaf-op-buy">Comprar</label>
+			<!-- Operation Toggle -->
+			<div class="apaf-group apaf-operation">
+				<div class="apaf-toggle-wrapper">
+					<input type="radio" name="finalidade" id="op-comprar" value="comprar" checked>
+					<label for="op-comprar">Comprar</label>
 
-							<input type="radio" name="finalidade" id="apaf-op-rent" value="<?php echo esc_attr( $rent_slug ); ?>">
-							<label for="apaf-op-rent">Alugar</label>
+					<input type="radio" name="finalidade" id="op-alugar" value="alugar">
+					<label for="op-alugar">Alugar</label>
 
-							<div class="apaf-toggle-bg"></div>
-						</div>
-					</div>
-
-					<!-- 2. City -->
-					<div class="apaf-field apaf-field-city">
-						<select name="cidade" id="apaf-cidade" class="apaf-select2" data-placeholder="Cidade">
-							<option value="">Cidade</option>
-							<?php if ( ! empty( $cidades ) && ! is_wp_error( $cidades ) ) : ?>
-								<?php foreach ( $cidades as $cidade ) : ?>
-									<option value="<?php echo esc_attr( $cidade->slug ); ?>"><?php echo esc_html( $cidade->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
-						</select>
-					</div>
-
-					<!-- 3. Neighborhood (Dependent) -->
-					<div class="apaf-field apaf-field-bairro">
-						<select name="bairro[]" id="apaf-bairro" class="apaf-select2" multiple="multiple" data-placeholder="Bairro" disabled>
-							<!-- Populated via AJAX -->
-						</select>
-					</div>
-
-					<!-- 4. Property Type -->
-					<div class="apaf-field apaf-field-type">
-						<select name="tipo_imovel[]" id="apaf-tipo" class="apaf-select2" multiple="multiple" data-placeholder="Tipo de Imóvel">
-							<?php if ( ! empty( $tipos_imovel ) && ! is_wp_error( $tipos_imovel ) ) : ?>
-								<?php foreach ( $tipos_imovel as $tipo ) : ?>
-									<option value="<?php echo esc_attr( $tipo->slug ); ?>"><?php echo esc_html( $tipo->name ); ?></option>
-								<?php endforeach; ?>
-							<?php endif; ?>
-						</select>
-					</div>
-
-					<!-- 5. Advanced Filters Button -->
-					<div class="apaf-field apaf-field-advanced">
-						<button type="button" id="apaf-btn-advanced" class="apaf-text-btn">
-							Filtros Avançados <span class="dashicons dashicons-filter"></span>
-						</button>
-					</div>
-
-					<!-- 6. Search Button -->
-					<div class="apaf-field apaf-field-submit">
-						<button type="button" id="apaf-btn-search" class="apaf-btn-black">BUSCAR</button>
-					</div>
+					<div class="apaf-toggle-bg"></div>
 				</div>
-			</form>
+			</div>
+
+			<!-- City Select -->
+			<div class="apaf-group apaf-city">
+				<select id="apaf-city-select" name="cidade" class="apaf-select2" data-placeholder="Cidade">
+					<option value="">Cidade</option> <!-- Placeholder -->
+					<?php if ( ! empty( $cidades ) && ! is_wp_error( $cidades ) ) : ?>
+						<?php foreach ( $cidades as $cidade ) : ?>
+							<option value="<?php echo esc_attr( $cidade->slug ); ?>"><?php echo esc_html( $cidade->name ); ?></option>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</select>
+			</div>
+
+			<!-- Neighborhood Select -->
+			<div class="apaf-group apaf-neighborhood">
+				<select id="apaf-neighborhood-select" name="bairro" class="apaf-select2" data-placeholder="Bairro" disabled>
+					<option value="">Bairro</option>
+				</select>
+			</div>
+
+			<!-- Advanced Filters Link -->
+			<div class="apaf-group apaf-advanced-link">
+				<a href="#" id="apaf-open-modal">
+					<span class="dashicons dashicons-filter"></span> Filtros Avançados
+				</a>
+			</div>
+
+			<!-- Search Button -->
+			<div class="apaf-group apaf-submit">
+				<button type="button" id="apaf-search-btn">BUSCAR</button>
+			</div>
+
 		</div>
 
-		<!-- Advanced Modal -->
-		<div id="apaf-modal" class="apaf-modal" aria-hidden="true">
-			<div class="apaf-modal-overlay"></div>
-			<div class="apaf-modal-content">
+		<!-- 2. ADVANCED MODAL -->
+		<div id="apaf-modal-overlay">
+			<div id="apaf-modal">
 				<div class="apaf-modal-header">
 					<h3>Filtros Avançados</h3>
-					<button type="button" class="apaf-modal-close">&times;</button>
+					<button type="button" id="apaf-close-modal">&times;</button>
 				</div>
+
 				<div class="apaf-modal-body">
 
-					<!-- 1. Zone -->
-					<div class="apaf-modal-row">
-						<label class="apaf-label">Localização / Zona</label>
-						<select name="zona" id="apaf-zona" class="apaf-simple-select">
-							<option value="">Todas</option>
-							<?php if ( ! empty( $zonas ) && ! is_wp_error( $zonas ) ) : ?>
-								<?php foreach ( $zonas as $zona ) : ?>
-									<option value="<?php echo esc_attr( $zona->slug ); ?>"><?php echo esc_html( $zona->name ); ?></option>
+					<!-- A. Property Types -->
+					<div class="apaf-section">
+						<h4>Tipo de Imóvel</h4>
+						<div class="apaf-checkbox-grid">
+							<?php if ( ! empty( $tipos ) && ! is_wp_error( $tipos ) ) : ?>
+								<?php foreach ( $tipos as $tipo ) : ?>
+									<label class="apaf-checkbox-card">
+										<input type="checkbox" name="tipo_imovel[]" value="<?php echo esc_attr( $tipo->slug ); ?>">
+										<span><?php echo esc_html( $tipo->name ); ?></span>
+									</label>
 								<?php endforeach; ?>
 							<?php endif; ?>
+						</div>
+					</div>
+
+					<!-- B. Price Range -->
+					<div class="apaf-section">
+						<h4>Faixa de Preço</h4>
+						<div id="apaf-price-slider"></div>
+						<div class="apaf-price-inputs">
+							<div class="apaf-input-wrapper">
+								<span>R$</span>
+								<input type="text" id="apaf-price-min" placeholder="Mínimo">
+							</div>
+							<div class="apaf-input-wrapper">
+								<span>R$</span>
+								<input type="text" id="apaf-price-max" placeholder="Máximo">
+							</div>
+						</div>
+					</div>
+
+					<!-- C. Numeric Specs -->
+					<div class="apaf-section">
+						<div class="apaf-specs-row">
+							<div class="apaf-spec-group">
+								<h4>Quartos</h4>
+								<div class="apaf-num-buttons" data-field="quartos">
+									<button type="button" data-val="1">1+</button>
+									<button type="button" data-val="2">2+</button>
+									<button type="button" data-val="3">3+</button>
+									<button type="button" data-val="4">4+</button>
+								</div>
+								<input type="hidden" name="quartos" id="apaf-quartos-input">
+							</div>
+
+							<div class="apaf-spec-group">
+								<h4>Banheiros</h4>
+								<div class="apaf-num-buttons" data-field="banheiros">
+									<button type="button" data-val="1">1+</button>
+									<button type="button" data-val="2">2+</button>
+									<button type="button" data-val="3">3+</button>
+									<button type="button" data-val="4">4+</button>
+								</div>
+								<input type="hidden" name="banheiros" id="apaf-banheiros-input">
+							</div>
+
+							<div class="apaf-spec-group">
+								<h4>Vagas</h4>
+								<div class="apaf-num-buttons" data-field="vagas">
+									<button type="button" data-val="1">1+</button>
+									<button type="button" data-val="2">2+</button>
+									<button type="button" data-val="3">3+</button>
+									<button type="button" data-val="4">4+</button>
+								</div>
+								<input type="hidden" name="vagas" id="apaf-vagas-input">
+							</div>
+						</div>
+					</div>
+
+					<!-- D. Zone -->
+					<div class="apaf-section">
+						<h4>Zona</h4>
+						<select name="zona" id="apaf-zona-select">
+							<option value="">Todas</option>
+							<option value="urbana">Urbana</option>
+							<option value="rural">Rural</option>
 						</select>
 					</div>
 
-					<!-- 2. Price Range -->
-					<div class="apaf-modal-row">
-						<label class="apaf-label">Faixa de Preço</label>
-						<div id="apaf-price-slider"></div>
-						<div class="apaf-price-inputs">
-							<input type="text" id="apaf-price-display-min" readonly>
-							<span class="separator">-</span>
-							<input type="text" id="apaf-price-display-max" readonly>
-
-							<!-- Hidden inputs for form submission -->
-							<input type="hidden" name="min_price" id="apaf-input-min-price">
-							<input type="hidden" name="max_price" id="apaf-input-max-price">
-						</div>
-					</div>
-
-					<!-- 3. Details (Bedrooms, Bathrooms, Garages) -->
-					<div class="apaf-modal-row apaf-details-row">
-						<div class="apaf-detail-group">
-							<label class="apaf-label">Quartos</label>
-							<div class="apaf-circle-buttons" data-target="quartos">
-								<button type="button" data-value="0">0</button>
-								<button type="button" data-value="1">1</button>
-								<button type="button" data-value="2">2</button>
-								<button type="button" data-value="3">3</button>
-								<button type="button" data-value="4+">4+</button>
-								<input type="hidden" name="quartos" id="apaf-input-quartos">
-							</div>
-						</div>
-
-						<div class="apaf-detail-group">
-							<label class="apaf-label">Banheiros</label>
-							<div class="apaf-circle-buttons" data-target="banheiros">
-								<button type="button" data-value="0">0</button>
-								<button type="button" data-value="1">1</button>
-								<button type="button" data-value="2">2</button>
-								<button type="button" data-value="3">3</button>
-								<button type="button" data-value="4+">4+</button>
-								<input type="hidden" name="banheiros" id="apaf-input-banheiros">
-							</div>
-						</div>
-
-						<div class="apaf-detail-group">
-							<label class="apaf-label">Vagas</label>
-							<div class="apaf-circle-buttons" data-target="vagas">
-								<button type="button" data-value="0">0</button>
-								<button type="button" data-value="1">1</button>
-								<button type="button" data-value="2">2</button>
-								<button type="button" data-value="3">3</button>
-								<button type="button" data-value="4+">4+</button>
-								<input type="hidden" name="vagas" id="apaf-input-vagas">
-							</div>
-						</div>
-					</div>
-
-					<!-- 4. Financing -->
-					<div class="apaf-modal-row">
-						<label class="apaf-checkbox-label">
-							<input type="checkbox" name="aceita_financiamento" id="apaf-financiamento" value="1">
-							<span class="checkmark"></span>
-							Aceita Financiamento?
+					<!-- E. Financing -->
+					<div class="apaf-section">
+						<label class="apaf-toggle-check">
+							<input type="checkbox" name="aceita_financiamento" value="1">
+							<span class="slider"></span>
+							<span class="label-text">Aceita Financiamento</span>
 						</label>
 					</div>
 
-				</div>
+				</div> <!-- .apaf-modal-body -->
+
 				<div class="apaf-modal-footer">
-					<button type="button" id="apaf-btn-apply" class="apaf-btn-large">APLICAR FILTROS</button>
+					<button type="button" id="apaf-apply-filters">APLICAR FILTROS</button>
 				</div>
 			</div>
 		</div>
 
 		<!-- Results Container -->
-		<div id="apaf-results-wrapper">
-			<div id="apaf-results-loader" style="display:none;">
-				<div class="spinner"></div>
-			</div>
-			<div id="apaf-results-container"></div>
+		<div id="apaf-results">
+			<!-- Results will be loaded here via AJAX -->
 		</div>
 
 	</div>
 	<?php
 	return ob_get_clean();
 }
-add_shortcode( 'pods_advanced_filter', 'apaf_shortcode_render' );
+add_shortcode( 'pods_advanced_filter', 'apaf_search_shortcode' );
