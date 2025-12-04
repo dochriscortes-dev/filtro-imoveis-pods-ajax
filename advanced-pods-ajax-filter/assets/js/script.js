@@ -4,7 +4,8 @@ jQuery(document).ready(function($) {
 
     // Initialize Select2 for City
     $('#apaf-cidade').select2({
-        width: '100%'
+        width: '100%',
+        minimumResultsForSearch: 10 // Hide search if few options, keeps it clean
     });
 
     // Initialize Select2 for Neighborhood (Dependent)
@@ -19,18 +20,25 @@ jQuery(document).ready(function($) {
 
     // Initialize Select2 for Property Type
     $('#apaf-tipo').select2({
-        width: '100%'
+        width: '100%',
+        closeOnSelect: false // Keep open for multiple selection
+    });
+
+    // Initialize Select2 for Zone (Modal)
+    $('#apaf-zona').select2({
+        width: '100%',
+        minimumResultsForSearch: Infinity // Disable search for small lists
     });
 
     // Initialize noUiSlider for Price
     var priceSlider = document.getElementById('apaf-price-slider');
     if (priceSlider) {
         noUiSlider.create(priceSlider, {
-            start: [0, 50000000],
+            start: [20000, 50000000], // Start at full range
             connect: true,
             range: {
-                'min': 0,
-                'max': 50000000
+                'min': 20000, // R$ 20k
+                'max': 50000000 // R$ 50M
             },
             step: 10000,
             format: {
@@ -38,6 +46,7 @@ jQuery(document).ready(function($) {
                     return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                 },
                 from: function (value) {
+                    // Remove R$, dots, spaces
                     return Number(value.replace(/[^0-9.-]+/g,""));
                 }
             }
@@ -54,10 +63,10 @@ jQuery(document).ready(function($) {
 
             if (handle) {
                 maxPriceDisplay.value = value;
-                maxPriceInput.value = unformatted; // Store raw number
+                maxPriceInput.value = Math.round(unformatted);
             } else {
                 minPriceDisplay.value = value;
-                minPriceInput.value = unformatted;
+                minPriceInput.value = Math.round(unformatted);
             }
         });
     }
@@ -87,23 +96,21 @@ jQuery(document).ready(function($) {
                             $bairroSelect.append(newOption);
                         });
                         $bairroSelect.prop('disabled', false);
-                    } else {
-                         // No neighborhoods found or error
-                         // Optional: Add a placeholder option "No neighborhoods found"
                     }
+                    // Trigger change to update Select2 UI
                     $bairroSelect.trigger('change');
                 },
                 error: function() {
                     console.log('Error fetching neighborhoods');
                 }
             });
+        } else {
+            // If city cleared, disable bairro
+            $bairroSelect.trigger('change');
         }
     });
 
     // --- 3. UI Interactions ---
-
-    // Toggle Button Logic (Operation) is handled by radio inputs, but let's ensure styling works.
-    // CSS uses :checked, so pure CSS handles visual state.
 
     // Modal Open
     $('#apaf-btn-advanced').on('click', function() {
@@ -117,43 +124,39 @@ jQuery(document).ready(function($) {
         $('body').css('overflow', '');
     });
 
-    // Circular Buttons Selection
+    // Soft Square Buttons Selection
     $('.apaf-circle-buttons button').on('click', function() {
         var $btn = $(this);
         var $group = $btn.closest('.apaf-circle-buttons');
         var targetInputId = '#apaf-input-' + $group.data('target');
 
-        // Remove active class from siblings
-        $group.find('button').removeClass('active');
-
-        // Add active class to clicked
-        $btn.addClass('active');
-
-        // Set hidden input value
-        $(targetInputId).val($btn.data('value'));
+        // Check if already active (toggle off)
+        if ($btn.hasClass('active')) {
+            $btn.removeClass('active');
+            $(targetInputId).val(''); // Reset
+        } else {
+            // Remove active class from siblings
+            $group.find('button').removeClass('active');
+            // Add active class to clicked
+            $btn.addClass('active');
+            // Set hidden input value
+            $(targetInputId).val($btn.data('value'));
+        }
     });
 
     // --- 4. Search Execution ---
 
     function performSearch() {
-        var formData = $('#apaf-main-form').serialize();
-        // Also include fields from modal if they are outside main form?
-        // Wait, the main form structure in PHP wraps ONLY the sticky bar.
-        // The modal fields are outside `<form id="apaf-main-form">`.
-        // I need to gather data from BOTH.
-
-        // Let's create a combined data object
+        // Collect data from Sticky Bar form
         var barData = $('#apaf-main-form').serializeArray();
 
-        // Modal inputs are not in a form tag in the markup I wrote, or they are just in divs.
-        // Let's manually gather them or wrap modal in a form too?
-        // Better to select inputs by name from the modal container.
+        // Collect data from Modal (inputs not in main form)
+        // We select inputs inside the modal container.
         var modalInputs = $('#apaf-modal :input').serializeArray();
 
-        // Combine
-        var combinedData = $.merge(barData, modalInputs);
+        // Combine arrays. $.merge modifies first argument.
+        var combinedData = $.merge($.merge([], barData), modalInputs);
 
-        // Convert to object or keep as array? jQuery ajax data can take array.
         // Add action and nonce
         combinedData.push({name: 'action', value: 'apaf_filter_imoveis'});
         combinedData.push({name: 'nonce', value: apaf_obj.nonce});
@@ -177,13 +180,13 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     $('#apaf-results-container').html(response.data.html);
                 } else {
-                    $('#apaf-results-container').html('<p>Erro ao buscar imóveis.</p>');
+                    $('#apaf-results-container').html('<div class="apaf-no-results">Nenhum imóvel encontrado.</div>');
                 }
             },
             error: function() {
                 $('#apaf-results-loader').hide();
                 $('#apaf-results-container').css('opacity', '1');
-                $('#apaf-results-container').html('<p>Erro de conexão.</p>');
+                $('#apaf-results-container').html('<div class="apaf-no-results">Erro de conexão. Tente novamente.</div>');
             }
         });
     }
@@ -199,4 +202,6 @@ jQuery(document).ready(function($) {
         performSearch();
     });
 
+    // Optional: Trigger search on enter key in inputs?
+    // Not strictly requested but good UX.
 });

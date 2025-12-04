@@ -1,9 +1,12 @@
 /* Global Styles & Reset */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 #apaf-container {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #333;
     position: relative;
     width: 100%;
+    line-height: 1.5;
 }
 
 #apaf-container * {
@@ -14,23 +17,28 @@
 #apaf-search-bar {
     position: sticky;
     top: 0;
-    z-index: 1000;
-    background: #fff;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    padding: 10px 0;
+    z-index: 999;
+    background: transparent; /* Container is transparent, inner is the pill */
+    padding: 20px 0;
     width: 100%;
-    transition: all 0.3s ease;
+    pointer-events: none; /* Let clicks pass through outside the bar */
 }
 
 .apaf-bar-inner {
+    pointer-events: auto;
     display: flex;
     flex-wrap: nowrap; /* Single row on desktop */
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 15px;
+    padding: 10px 20px;
     gap: 15px;
+
+    /* The Pill Shape */
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    border-radius: 50px;
 }
 
 /* Operation Toggle */
@@ -40,12 +48,12 @@
 
 .apaf-toggle {
     display: flex;
-    background: #f0f0f0;
+    background: #f5f5f5;
     border-radius: 30px;
     position: relative;
-    padding: 2px;
+    padding: 3px;
     width: 180px;
-    height: 40px;
+    height: 48px; /* Matches input height */
     user-select: none;
 }
 
@@ -56,7 +64,7 @@
 .apaf-toggle label {
     flex: 1;
     text-align: center;
-    line-height: 36px;
+    line-height: 42px;
     z-index: 2;
     cursor: pointer;
     font-weight: 600;
@@ -71,41 +79,34 @@
 
 .apaf-toggle-bg {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 50%;
-    height: 36px;
-    background: #000;
-    border-radius: 28px;
-    transition: transform 0.3s ease;
+    top: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    height: 42px;
+    background: #1F4E3D; /* Dark Green */
+    border-radius: 25px;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
     z-index: 1;
 }
 
-/* Logic for toggle bg movement handled by CSS checked adjacent selector is tricky with label order.
-   Better handled by JS or fixed 'checked' classes.
-   But pure CSS trick:
-   If first is checked, left: 2px.
-   If second is checked, transform: translateX(100% - 4px?).
-*/
 #apaf-op-buy:checked ~ .apaf-toggle-bg {
     transform: translateX(0);
 }
 #apaf-op-rent:checked ~ .apaf-toggle-bg {
-    transform: translateX(86px); /* 180/2 = 90. minus padding? Adjusted manually or flex. */
-    width: calc(50% - 2px);
+    transform: translateX(100%);
+    left: 0; /* Reset left to handle calculation correctly or just use simple math */
+    margin-left: 3px; /* visual adjustment */
 }
-/* Let's refine the toggle CSS later or use JS. I'll rely on JS to add classes or just simplified.
-   Actually, standard toggle:
-*/
-.apaf-toggle input#apaf-op-rent:checked ~ .apaf-toggle-bg {
-     transform: translateX(88px);
+/* Fix for toggle sliding: */
+#apaf-op-rent:checked ~ .apaf-toggle-bg {
+   transform: translateX(87px); /* 180/2 = 90. minus padding logic. */
 }
 
 
 /* Form Fields */
 .apaf-field {
     flex: 1;
-    min-width: 150px;
+    min-width: 140px;
 }
 
 /* Specific Widths for Desktop */
@@ -115,28 +116,51 @@
 .apaf-field-advanced { flex: 0 0 auto; }
 .apaf-field-submit { flex: 0 0 auto; }
 
-/* Select2 Customization to look minimalist */
+/* Select2 Customization - Minimalist */
 .select2-container .select2-selection--single,
 .select2-container .select2-selection--multiple {
-    height: 40px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    height: 48px;
+    border: 1px solid #eee;
+    background: #fff;
+    border-radius: 25px; /* Softer edges matching bar or slightly less */
     display: flex;
     align-items: center;
+    transition: border-color 0.2s;
+}
+/* Let's make inputs match the clean look, maybe less rounded than the container */
+.select2-container .select2-selection--single,
+.select2-container .select2-selection--multiple {
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--multiple {
+    border-color: #1F4E3D;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 40px;
-    padding-left: 10px;
+    line-height: 48px;
+    padding-left: 15px;
     color: #333;
+    font-weight: 500;
+    font-size: 14px;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 38px;
+    height: 46px;
+    right: 10px;
 }
 
 .select2-container--default .select2-selection--multiple {
     padding: 0 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    margin-top: 9px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
 }
 
 /* Advanced Button */
@@ -149,40 +173,45 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 5px;
-    height: 40px;
+    gap: 8px;
+    height: 48px;
+    padding: 0 15px;
+    transition: color 0.2s;
 }
 .apaf-text-btn:hover {
-    color: #000;
+    color: #1F4E3D;
 }
 
 /* Search Button */
 .apaf-btn-black {
-    background: #000;
+    background: #1F4E3D; /* Dark Green */
     color: #fff;
     border: none;
-    padding: 0 30px;
-    height: 40px;
+    padding: 0 35px;
+    height: 48px;
     font-weight: 700;
     font-size: 14px;
-    border-radius: 4px;
+    border-radius: 24px; /* Pill shape */
     cursor: pointer;
     text-transform: uppercase;
-    transition: background 0.3s;
+    letter-spacing: 0.5px;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 4px 15px rgba(31, 78, 61, 0.2);
 }
 .apaf-btn-black:hover {
-    background: #333;
+    background: #163a2d;
+    transform: translateY(-1px);
 }
 
 /* --- Modal --- */
 .apaf-modal {
-    display: none; /* Hidden by default */
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 9999;
+    z-index: 10000;
 }
 
 .apaf-modal.is-open {
@@ -195,26 +224,26 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
+    background: rgba(255, 255, 255, 0.6); /* Lighter overlay */
+    backdrop-filter: blur(8px); /* Blur effect */
 }
 
 .apaf-modal-content {
     position: relative;
     background: #fff;
     width: 90%;
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    animation: slideDown 0.3s ease-out;
-    max-height: 90vh;
+    max-width: 550px;
+    margin: 60px auto;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+    animation: modalFadeIn 0.3s ease-out;
+    max-height: 85vh;
     overflow-y: auto;
 }
 
-@keyframes slideDown {
-    from { transform: translateY(-20px); opacity: 0; }
+@keyframes modalFadeIn {
+    from { transform: translateY(20px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
@@ -222,97 +251,139 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
+    margin-bottom: 30px;
 }
 
 .apaf-modal-header h3 {
     margin: 0;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
+    color: #111;
 }
 
 .apaf-modal-close {
     background: none;
     border: none;
-    font-size: 30px;
+    font-size: 32px;
     cursor: pointer;
     line-height: 1;
+    color: #999;
+    transition: color 0.2s;
+}
+.apaf-modal-close:hover {
+    color: #333;
 }
 
 .apaf-modal-body {
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 30px;
 }
 
 .apaf-label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     font-weight: 600;
-    color: #333;
+    color: #111;
+    font-size: 15px;
 }
 
 /* Modal Inputs */
 .apaf-simple-select {
     width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    transition: border 0.2s;
+}
+.apaf-simple-select:focus {
+    border-color: #1F4E3D;
 }
 
 /* Price Range */
 #apaf-price-slider {
-    margin-bottom: 15px;
-    height: 10px;
+    margin-bottom: 20px;
+    height: 6px;
+    border: none;
+    background: #eee;
+    box-shadow: none;
 }
 .noUi-connect {
-    background: #000;
+    background: #1F4E3D;
 }
+.noUi-horizontal .noUi-handle {
+    width: 20px;
+    height: 20px;
+    right: -10px;
+    top: -7px;
+    background: #1F4E3D;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+.noUi-handle:before, .noUi-handle:after {
+    display: none;
+}
+
 .apaf-price-inputs {
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-weight: 600;
     color: #555;
+    background: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 8px;
 }
 .apaf-price-inputs input {
     border: none;
     background: transparent;
-    font-weight: bold;
-    color: #333;
-    width: 120px;
+    font-weight: 700;
+    color: #1F4E3D;
+    width: 130px;
     text-align: center;
+    font-size: 15px;
+}
+.apaf-price-inputs .separator {
+    color: #ccc;
 }
 
-/* Circle Buttons */
+/* Soft Square Buttons */
 .apaf-detail-group {
-    margin-bottom: 15px;
+    margin-bottom: 5px;
 }
 .apaf-circle-buttons {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 .apaf-circle-buttons button {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 1px solid #ddd;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px; /* Soft Square */
+    border: 1px solid #e0e0e0;
     background: #fff;
-    color: #333;
+    color: #555;
     font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .apaf-circle-buttons button:hover {
-    border-color: #000;
+    border-color: #1F4E3D;
+    color: #1F4E3D;
 }
 .apaf-circle-buttons button.active {
-    background: #000;
+    background: #1F4E3D;
     color: #fff;
-    border-color: #000;
+    border-color: #1F4E3D;
+    box-shadow: 0 4px 10px rgba(31, 78, 61, 0.2);
 }
 
 /* Financing Checkbox */
@@ -320,123 +391,200 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 16px;
+    font-weight: 500;
+    font-size: 15px;
+    user-select: none;
 }
 .apaf-checkbox-label input {
-    margin-right: 10px;
-    width: 20px;
-    height: 20px;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid #ddd;
+    border-radius: 6px; /* Soft square checkbox */
+    margin-right: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+.apaf-checkbox-label input:checked {
+    background-color: #1F4E3D;
+    border-color: #1F4E3D;
+}
+.apaf-checkbox-label input:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 6px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 /* Modal Footer */
 .apaf-modal-footer {
-    margin-top: 30px;
-    text-align: center;
+    margin-top: 40px;
 }
 .apaf-btn-large {
     width: 100%;
-    background: #000;
+    background: #1F4E3D;
     color: #fff;
     border: none;
-    padding: 15px;
-    font-size: 16px;
+    padding: 18px;
+    font-size: 15px;
     font-weight: 700;
-    border-radius: 4px;
+    border-radius: 12px;
     cursor: pointer;
     text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: background 0.3s;
+    box-shadow: 0 5px 20px rgba(31, 78, 61, 0.15);
 }
 .apaf-btn-large:hover {
-    background: #333;
+    background: #163a2d;
 }
 
 /* Results */
 #apaf-results-wrapper {
     max-width: 1200px;
-    margin: 20px auto;
-    padding: 0 15px;
+    margin: 40px auto;
+    padding: 0 20px;
 }
 .apaf-results-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 30px;
 }
 .apaf-card {
-    border: 1px solid #eee;
-    border-radius: 8px;
+    background: #fff;
+    border: none;
+    border-radius: 12px;
     overflow: hidden;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
 }
 .apaf-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
 }
 .apaf-card-image {
-    height: 200px;
-    background: #f9f9f9;
+    height: 220px;
+    background: #f0f0f0;
     overflow: hidden;
+    position: relative;
 }
 .apaf-card-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.5s ease;
+}
+.apaf-card:hover .apaf-card-image img {
+    transform: scale(1.05);
 }
 .apaf-card-content {
-    padding: 15px;
+    padding: 25px;
 }
 .apaf-card-title {
-    margin: 0 0 10px;
+    margin: 0 0 12px;
     font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
 }
 .apaf-card-title a {
     text-decoration: none;
-    color: #333;
+    color: #111;
+    transition: color 0.2s;
+}
+.apaf-card-title a:hover {
+    color: #1F4E3D;
 }
 .apaf-card-price {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
-    color: #000;
-    margin-bottom: 10px;
+    color: #1F4E3D;
+    margin-bottom: 15px;
 }
 .apaf-card-features {
     display: flex;
-    gap: 15px;
-    color: #666;
+    gap: 20px;
+    color: #777;
     font-size: 14px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 15px;
+}
+.apaf-card-features span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.apaf-no-results {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #777;
+}
+
+/* Loading Spinner */
+#apaf-results-loader {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+.spinner {
+   width: 40px;
+   height: 40px;
+   border: 4px solid #f3f3f3;
+   border-top: 4px solid #1F4E3D;
+   border-radius: 50%;
+   animation: spin 1s linear infinite;
+}
+@keyframes spin {
+   0% { transform: rotate(0deg); }
+   100% { transform: rotate(360deg); }
 }
 
 /* Mobile Responsive */
 @media (max-width: 992px) {
-    .apaf-bar-inner {
-        flex-wrap: wrap;
+    #apaf-search-bar {
+        padding: 10px;
     }
-    .apaf-field {
-        min-width: 45%;
-    }
-    .apaf-field-submit {
-        width: 100%;
-    }
-    .apaf-btn-black {
-        width: 100%;
-    }
-}
-
-@media (max-width: 768px) {
     .apaf-bar-inner {
         flex-direction: column;
         align-items: stretch;
+        border-radius: 20px;
+        padding: 20px;
+        gap: 15px;
     }
-    .apaf-toggle-wrapper {
-        align-self: center;
+
+    .apaf-toggle-wrapper,
+    .apaf-field,
+    .apaf-field-advanced,
+    .apaf-field-submit {
+        width: 100%;
+        min-width: 0;
     }
-    .apaf-field {
+
+    .apaf-toggle {
+        width: 100%; /* Full width toggle on mobile? */
+        justify-content: space-between;
+    }
+    .apaf-toggle-bg {
+        width: calc(50% - 3px);
+    }
+    #apaf-op-rent:checked ~ .apaf-toggle-bg {
+        transform: translateX(100%);
+    }
+
+    .apaf-btn-black {
         width: 100%;
     }
-    .apaf-field-advanced {
-        text-align: center;
-    }
+
     .apaf-text-btn {
         justify-content: center;
-        width: 100%;
+        border: 1px solid #eee;
+        border-radius: 12px;
     }
 }
